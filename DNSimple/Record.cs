@@ -1,6 +1,7 @@
 ﻿using System;
 
-namespace DNSimple {
+namespace DNSimple
+{
     public class Record
     {
         public Record(TimeSpan timeToLive, DateTime creationTime)

@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
-namespace DNSimple {
+namespace DNSimple
+{
     public class Map<T1, T2> : IEnumerable<KeyValuePair<T1, T2>>
     {
         private readonly Dictionary<T1, T2> forward = new Dictionary<T1, T2>();

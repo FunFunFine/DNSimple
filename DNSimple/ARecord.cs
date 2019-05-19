@@ -51,6 +51,5 @@ namespace DNSimple
                                         record
                                             .TimeToLive -
                                         DateTime.Now);
-        
     }
 }
