@@ -21,6 +21,7 @@ namespace DNSimple
 
     {
         private const string GoogleIp = "8.8.8.8";
+        private const string E1NSIp = "212.193.163.6";
         private const int Port = 53;
         private const string PathPrefix = @".\..\..\..\";
 
@@ -59,27 +60,16 @@ namespace DNSimple
                 {
                     var (request, sender) = GetRequest().Result;
 
-                    var settings = new JsonSerializerSettings();
-                    settings.Converters.Add(new IPAddressConverter());
-                    settings.Converters.Add(new IPEndPointConverter());
-                    settings.Converters.Add(new DomainConverter());
-
-                    var json = JsonConvert.SerializeObject(ACache, settings);
-
-                    var domain = JsonConvert.SerializeObject(new Domain("google.com"), settings);
-                    var d = JsonConvert.DeserializeObject<Domain>(domain, settings);
-
-                    var dict = JsonConvert.DeserializeObject<Dictionary<string, List<ARecord>>>(json, settings);
                     (request.Questions.First()
                             .LogDebug(q => $"Got DNS request #{request.Id} from {sender} for {q}", Logger) switch
                          {
-                         { Type: RecordType.NS } ns1 => ProcessRequest(ns1, request, NsCache, record =>
+                         { Type: RecordType.NS } ns => ProcessRequest(ns, request, NsCache, record =>
                                                                            (NameServerResourceRecord) record),
-                         { Type: RecordType.A } a1 => ProcessRequest(a1, request, ACache,
+                         { Type: RecordType.A } a => ProcessRequest(a, request, ACache,
                                                                      record => (IPAddressResourceRecord) record),
                          _ => None
                          }).BiMap(Default.Return, () => Resolve(request).Result)
-                           .LogDebug(a => $"Got an answer to #{request.Id} for {sender}: {a}", Logger)
+                           .LogDebug(a => $"Got an answer to #{request.Id} for {sender}", Logger)
                            .Do(r => SendAnswer(r, sender).Wait());
                 }
                 catch (Exception e)
@@ -137,13 +127,14 @@ namespace DNSimple
         public async Task SendAnswer(Response answer, IPEndPoint endPoint)
         {
             Logger.Debug($"Sending answers to {endPoint}: {answer}");
-            await client.SendAsync(answer.ToArray(), answer.Size, endPoint);
+            await client.SendAsync(answer.ToArray(), answer.ToArray().Length, endPoint);
         }
 
         private async Task<Response> Resolve(Request request)
         {
             using var udp = new UdpClient();
-            var google = new IPEndPoint(IPAddress.Parse(GoogleIp), 53);
+            Logger.Info($"Using {E1NSIp}");
+            var google = new IPEndPoint(IPAddress.Parse(E1NSIp), 53);
 
             await udp.SendAsync(request.ToArray(), request.Size, google);
             var result = await udp.ReceiveAsync();
